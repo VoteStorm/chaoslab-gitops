@@ -18,7 +18,11 @@ spec:
           persistence:
             enabled: false   # kind 로컬 환경에서는 false 권장
         grafana:
-          enabled: false
+        - name: Loki
+        type: loki
+        url: http://loki.monitoring.svc.cluster.local:3100
+        access: proxy
+        isDefault: false
   destination:
     server: "https://kubernetes.default.svc"
     namespace: monitoring
