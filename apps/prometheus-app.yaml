@@ -10,7 +10,6 @@ spec:
     chart: kube-prometheus-stack
     targetRevision: 55.5.0
     helm:
-      # values: | 뒤에는 정확히 동일한 간격의 공백을 사용해야 합니다.
       values: |
         grafana:
           service:
@@ -20,6 +19,7 @@ spec:
               type: loki
               url: http://loki.monitoring.svc.cluster.local:3100
               access: proxy
+              isDefault: false
         prometheus:
           prometheusSpec:
             scrapeInterval: 15s
@@ -34,3 +34,4 @@ spec:
       selfHeal: true
     syncOptions:
     - CreateNamespace=true
+    - ServerSideApply=true
