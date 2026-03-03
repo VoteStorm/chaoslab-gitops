@@ -12,10 +12,8 @@ spec:
     helm:
       values: |
         replicaCount: 3
-
         service:
           type: ClusterIP
-
         hpa:
           enabled: true
           minReplicas: 3
@@ -23,10 +21,10 @@ spec:
           cpu:
             enabled: true
             targetAverageUtilization: 80
-
         serviceMonitor:
           enabled: true
-
+          additionalLabels:
+            release: kube-prometheus-stack
         resources:
           requests:
             cpu: 50m
@@ -34,21 +32,17 @@ spec:
           limits:
             cpu: 100m
             memory: 64Mi
-
         faults:
           delay: 0
           error: 0
-          
-        # ── Ingress: k6 외부 접근용 ─────────────────────────────────
         ingress:
           enabled: true
           className: nginx
           hosts:
-            - host: podinfo.local
+            - host: podinfo.INGRESS_IP.nip.io
               paths:
                 - path: /
                   pathType: Prefix
-                  
   destination:
     server: https://kubernetes.default.svc
     namespace: podinfo
@@ -58,3 +52,14 @@ spec:
       selfHeal: true
     syncOptions:
     - CreateNamespace=true
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: podinfo-pdb
+  namespace: podinfo
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: podinfo

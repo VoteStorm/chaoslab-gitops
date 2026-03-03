@@ -1,4 +1,3 @@
-# chaos-mesh-app.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -26,3 +25,22 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: chaos-dashboard-ingress
+  namespace: chaos-mesh
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: chaos.INGRESS_IP.nip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: chaos-dashboard
+                port:
+                  number: 2333

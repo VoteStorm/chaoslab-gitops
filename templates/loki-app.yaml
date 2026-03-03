@@ -1,4 +1,3 @@
-# loki-app.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -16,13 +15,13 @@ spec:
           enabled: true
         loki:
           persistence:
-            enabled: false   # kind 로컬 환경에서는 false 권장
+            enabled: true
+            size: 10Gi
         grafana:
           enabled: false
           sidecar:
             datasources:
               enabled: false
-              
   destination:
     server: "https://kubernetes.default.svc"
     namespace: monitoring
