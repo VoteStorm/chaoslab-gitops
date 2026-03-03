@@ -26,7 +26,8 @@ spec:
 
         serviceMonitor:
           enabled: true
-
+          additionalLabels:
+            release: kube-prometheus-stack
         resources:
           requests:
             cpu: 50m
@@ -38,13 +39,12 @@ spec:
         faults:
           delay: 0
           error: 0
-          
-        # ── Ingress: k6 외부 접근용 ─────────────────────────────────
+
         ingress:
           enabled: true
           className: nginx
           hosts:
-            - host: podinfo.local
+            - host: podinfo.INGRESS_IP.nip.io
               paths:
                 - path: /
                   pathType: Prefix
@@ -58,3 +58,14 @@ spec:
       selfHeal: true
     syncOptions:
     - CreateNamespace=true
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: podinfo-pdb
+  namespace: podinfo
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: podinfo

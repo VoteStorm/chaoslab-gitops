@@ -12,21 +12,40 @@ spec:
     helm:
       values: |
         prometheus-node-exporter:
-          enabled: false
+          enabled: true
+
         grafana:
           service:
             type: ClusterIP
+          ingress:
+            enabled: true
+            ingressClassName: nginx
+            hosts:
+              - grafana.INGRESS_IP.nip.io
           additionalDataSources:
             - name: Loki
               type: loki
               url: http://loki.monitoring.svc.cluster.local:3100
               access: proxy
               isDefault: false
+
         prometheus:
           prometheusSpec:
             scrapeInterval: 15s
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelectorNilUsesHelmValues: false
+
         alertmanager:
-          enabled: false
+          enabled: true
+          alertmanagerSpec:
+            storage:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 2Gi
+
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
