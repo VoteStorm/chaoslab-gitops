@@ -1,0 +1,60 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: podinfo
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://stefanprodan.github.io/podinfo
+    chart: podinfo
+    targetRevision: 6.7.0
+    helm:
+      values: |
+        replicaCount: 3
+
+        service:
+          type: ClusterIP
+
+        hpa:
+          enabled: true
+          minReplicas: 3
+          maxReplicas: 10
+          cpu:
+            enabled: true
+            targetAverageUtilization: 80
+
+        serviceMonitor:
+          enabled: true
+
+        resources:
+          requests:
+            cpu: 50m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 64Mi
+
+        faults:
+          delay: 0
+          error: 0
+          
+        # ── Ingress: k6 외부 접근용 ─────────────────────────────────
+        ingress:
+          enabled: true
+          className: nginx
+          hosts:
+            - host: podinfo.local
+              paths:
+                - path: /
+                  pathType: Prefix
+                  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: podinfo
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

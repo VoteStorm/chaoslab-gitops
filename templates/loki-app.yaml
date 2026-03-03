@@ -1,0 +1,32 @@
+# loki-app.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: loki-stack
+    repoURL: https://grafana.github.io/helm-charts
+    targetRevision: 2.10.2
+    helm:
+      values: |
+        promtail:
+          enabled: true
+        loki:
+          persistence:
+            enabled: false   # kind 로컬 환경에서는 false 권장
+        grafana:
+          enabled: false
+          sidecar:
+            datasources:
+              enabled: false
+              
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
