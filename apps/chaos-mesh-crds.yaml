@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: chaos-mesh
+  name: chaos-mesh-crds
   namespace: argocd
 spec:
   project: default
@@ -11,17 +11,15 @@ spec:
     targetRevision: 2.6.3
     helm:
       values: |
-        installCRDs: false
+        installCRDs: true
+        controllerManager:
+          enabled: false
         chaosDaemon:
-          runtime: containerd
-          socketPath: /run/containerd/containerd.sock
+          enabled: false
         dashboard:
-          create: true
-          ingress:
-            enabled: true
-            ingressClassName: nginx
-            hosts:
-              - name: chaos.34.64.241.165.nip.io
+          create: false
+        dnsServer:
+          create: false
   destination:
     server: https://kubernetes.default.svc
     namespace: chaos-mesh
@@ -31,3 +29,4 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - ServerSideApply=true
