@@ -16,11 +16,8 @@ spec:
           type: ClusterIP
         hpa:
           enabled: true
-          minReplicas: 3
           maxReplicas: 10
-          cpu:
-            enabled: true
-            targetAverageUtilization: 80
+          cpu: 80
         serviceMonitor:
           enabled: true
           additionalLabels:
