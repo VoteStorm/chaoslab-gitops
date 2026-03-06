@@ -1,0 +1,201 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: votestorm-apps
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          # ── config.json에서 ingressIP를 읽어옴 ──
+          - git:
+              repoURL: https://github.com/VoteStorm/VoteStorm_GitopsRepo.git
+              revision: main
+              files:
+                - path: config.json
+
+          # ── 앱 목록 ──
+          - list:
+              elements:
+                - name: podinfo
+                  namespace: podinfo
+                  chart: podinfo
+                  repoURL: https://stefanprodan.github.io/podinfo
+                  targetRevision: "6.7.0"
+                  sourceType: helm
+
+                - name: kube-prometheus-stack
+                  namespace: monitoring
+                  chart: kube-prometheus-stack
+                  repoURL: https://prometheus-community.github.io/helm-charts
+                  targetRevision: "55.5.0"
+                  sourceType: helm
+
+                - name: chaos-mesh
+                  namespace: chaos-mesh
+                  chart: chaos-mesh
+                  repoURL: https://charts.chaos-mesh.org
+                  targetRevision: "2.6.3"
+                  sourceType: helm
+
+                - name: loki
+                  namespace: monitoring
+                  chart: loki-stack
+                  repoURL: https://grafana.github.io/helm-charts
+                  targetRevision: "2.10.2"
+                  sourceType: helm
+
+                - name: votestorm-base
+                  namespace: argocd
+                  chart: ""
+                  repoURL: https://github.com/VoteStorm/VoteStorm_GitopsRepo.git
+                  targetRevision: main
+                  sourceType: git
+
+  template:
+    metadata:
+      name: "{{ .name }}"
+    spec:
+      project: default
+      source:
+        repoURL: "{{ .repoURL }}"
+        chart: "{{ .chart }}"
+        targetRevision: "{{ .targetRevision }}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{ .namespace }}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+
+  templatePatch: |
+    {{- if eq .sourceType "git" }}
+    spec:
+      source:
+        chart: ""
+        path: charts/votestorm-base
+        helm:
+          values: |
+            ingressIP: {{ .ingressIP }}
+    {{- end }}
+
+    {{- if eq .name "podinfo" }}
+    spec:
+      source:
+        helm:
+          values: |
+            replicaCount: 3
+            service:
+              type: ClusterIP
+            hpa:
+              enabled: true
+              maxReplicas: 10
+              cpu: 80
+            serviceMonitor:
+              enabled: true
+              additionalLabels:
+                release: kube-prometheus-stack
+            resources:
+              requests:
+                cpu: 50m
+                memory: 32Mi
+              limits:
+                cpu: 100m
+                memory: 64Mi
+            faults:
+              delay: 0
+              error: 0
+            ingress:
+              enabled: true
+              className: nginx
+              hosts:
+                - host: podinfo.{{ .ingressIP }}.nip.io
+                  paths:
+                    - path: /
+                      pathType: Prefix
+    {{- end }}
+
+    {{- if eq .name "kube-prometheus-stack" }}
+    spec:
+      source:
+        helm:
+          skipCrds: true
+          values: |
+            prometheus-node-exporter:
+              enabled: true
+            grafana:
+              service:
+                type: ClusterIP
+              ingress:
+                enabled: true
+                ingressClassName: nginx
+                hosts:
+                  - grafana.{{ .ingressIP }}.nip.io
+              additionalDataSources:
+                - name: Loki
+                  type: loki
+                  url: http://loki.monitoring.svc.cluster.local:3100
+                  access: proxy
+                  isDefault: false
+            prometheus:
+              prometheusSpec:
+                scrapeInterval: 15s
+                serviceMonitorSelectorNilUsesHelmValues: false
+                podMonitorSelectorNilUsesHelmValues: false
+            alertmanager:
+              enabled: true
+              alertmanagerSpec:
+                storage:
+                  volumeClaimTemplate:
+                    spec:
+                      accessModes: ["ReadWriteOnce"]
+                      resources:
+                        requests:
+                          storage: 2Gi
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+    {{- end }}
+
+    {{- if eq .name "chaos-mesh" }}
+    spec:
+      source:
+        helm:
+          skipCrds: true
+          values: |
+            chaosDaemon:
+              runtime: containerd
+              socketPath: /run/containerd/containerd.sock
+            dashboard:
+              create: true
+              ingress:
+                enabled: true
+                ingressClassName: nginx
+                hosts:
+                  - name: chaos.{{ .ingressIP }}.nip.io
+                    tls: false
+    {{- end }}
+
+    {{- if eq .name "loki" }}
+    spec:
+      source:
+        helm:
+          values: |
+            promtail:
+              enabled: true
+            loki:
+              persistence:
+                enabled: true
+                size: 10Gi
+            grafana:
+              enabled: false
+              sidecar:
+                datasources:
+                  enabled: false
+    {{- end }}

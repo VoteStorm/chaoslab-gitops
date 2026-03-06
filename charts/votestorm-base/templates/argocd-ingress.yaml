@@ -1,4 +1,3 @@
-# argocd-ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -10,7 +9,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: argocd.34.64.241.165.nip.io
+    - host: argocd.{{ .Values.ingressIP }}.nip.io
       http:
         paths:
           - path: /
@@ -22,4 +21,4 @@ spec:
                   number: 443
   tls:
     - hosts:
-        - argocd.34.64.241.165.nip.io
+        - argocd.{{ .Values.ingressIP }}.nip.io
