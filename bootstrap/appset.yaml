@@ -110,6 +110,8 @@ spec:
             faults:
               delay: 0
               error: 0
+            podDisruptionBudget:
+              minAvailable: 2
             ingress:
               enabled: true
               className: nginx
