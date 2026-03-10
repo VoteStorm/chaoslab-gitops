@@ -11,7 +11,7 @@ spec:
         generators:
           - git:
               repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
-              revision: refactor/#2-application-set
+              revision: "refactor/#2-application-set"
               files:
                 - path: env/cloud.json
           - list:
@@ -48,7 +48,7 @@ spec:
                   namespace: argocd
                   chart: ""
                   repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
-                  targetRevision: refactor/#2-application-set
+                  targetRevision: "refactor/#2-application-set"
                   sourceType: git
 
   template:
@@ -87,7 +87,7 @@ spec:
                       - path: /
                         pathType: Prefix
         - repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
-          targetRevision: refactor/#2-application-set
+          targetRevision: "refactor/#2-application-set"
           ref: values
     {{- end }}
 
@@ -107,7 +107,7 @@ spec:
                   hosts:
                     - grafana.{{ .domain }}
         - repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
-          targetRevision: refactor/#2-application-set
+          targetRevision: "refactor/#2-application-set"
           ref: values
       syncPolicy:
         syncOptions:
@@ -132,7 +132,7 @@ spec:
                     - name: chaos.{{ .domain }}
                       tls: false
         - repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
-          targetRevision: refactor/#2-application-set
+          targetRevision: "refactor/#2-application-set"
           ref: values
     {{- end }}
 
@@ -146,7 +146,7 @@ spec:
             valueFiles:
               - $values/values/apps/loki.yaml
         - repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
-          targetRevision: refactor/#2-application-set
+          targetRevision: "refactor/#2-application-set"
           ref: values
     {{- end }}
 
