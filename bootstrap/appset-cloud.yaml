@@ -10,8 +10,8 @@ spec:
     - matrix:
         generators:
           - git:
-              repoURL: https://github.com/VoteStorm/VoteStorm_GitopsRepo.git
-              revision: main
+              repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
+              revision: refactor/#2-application-set
               files:
                 - path: env/cloud.json
           - list:
