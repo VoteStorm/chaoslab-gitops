@@ -12,7 +12,7 @@ resources:
     cpu: 50m
     memory: 32Mi
   limits:
-    cpu: 250m
+    cpu: 500m
     memory: 64Mi
 faults:
   delay: 0
