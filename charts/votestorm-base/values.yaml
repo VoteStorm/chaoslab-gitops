@@ -1,2 +1,0 @@
-# ApplicationSet의 templatePatch에서 config.json 값으로 오버라이드됨
-ingressIP: "0.0.0.0"

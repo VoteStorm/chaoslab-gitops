@@ -1,0 +1,11 @@
+promtail:
+  enabled: true
+loki:
+  persistence:
+    enabled: true
+    size: 10Gi
+grafana:
+  enabled: false
+  sidecar:
+    datasources:
+      enabled: false
