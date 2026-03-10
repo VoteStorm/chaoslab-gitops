@@ -7,13 +7,11 @@ spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
   generators:
-    - matrix:
-        generators:
-          - git:
-              repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
-              revision: feature/on-prem/#4-argocd-addon
-              files:
-                - path: apps/monitoring/*/app.yaml
+    - git:
+        repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
+        revision: feature/on-prem/#4-argocd-addon
+        files:
+          - path: apps/monitoring/*/app.yaml
   template:
     metadata:
       name: "{{ .name }}"
