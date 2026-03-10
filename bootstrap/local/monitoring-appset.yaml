@@ -9,7 +9,7 @@ spec:
   generators:
     - git:
         repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
-        revision: feature/on-prem/#5-grafana-datasource
+        revision: fix/on-prem/#5-grafana-datasource
         files:
           - path: apps/monitoring/*/app.yaml
   template:
@@ -19,7 +19,7 @@ spec:
       project: default
       sources:
         - repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
-          targetRevision: feature/on-prem/#5-grafana-datasource
+          targetRevision: fix/on-prem/#5-grafana-datasource
           ref: values
         - repoURL: "{{ .repoURL }}"
           chart: "{{ .chart }}"
