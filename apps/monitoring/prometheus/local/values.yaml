@@ -1,9 +1,0 @@
-grafana:
-  adminPassword: admin
-  service:
-    type: ClusterIP
-  ingress:
-    enabled: true
-    ingressClassName: nginx
-    hosts: 
-      - grafana.chaos-lab.local

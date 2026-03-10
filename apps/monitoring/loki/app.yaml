@@ -1,5 +1,0 @@
-name: loki
-chart: loki-stack
-repoURL: https://grafana.github.io/helm-charts
-targetRevision: "2.10.2"
-namespace: monitoring
