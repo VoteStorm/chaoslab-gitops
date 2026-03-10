@@ -1,5 +1,5 @@
 apiVersion: v2
-name: votestorm-base
+name: chaoslab-base
 description: VoteStorm 프로젝트의 순수 K8s 리소스 (Ingress, RBAC, PDB, Secret)
 version: 1.0.0
 type: application
