@@ -2,7 +2,7 @@ replicaCount: 3
 hpa:
   enabled: true
   maxReplicas: 10
-  cpu: 80
+  cpu: 70
 serviceMonitor:
   enabled: true
   additionalLabels:
@@ -12,7 +12,7 @@ resources:
     cpu: 50m
     memory: 32Mi
   limits:
-    cpu: 100m
+    cpu: 250m
     memory: 64Mi
 faults:
   delay: 0
