@@ -27,3 +27,58 @@ alertmanager:
           resources:
             requests:
               storage: 2Gi
+additionalPrometheusRulesMap:
+  chaos-lab-alerts:
+    groups:
+      - name: podinfo-baseline
+        rules:
+          # P95 Latency > 50ms (베이스라인 기준)
+          - alert: HighLatencyP95
+            expr: |
+              histogram_quantile(0.95,
+                sum(rate(http_request_duration_seconds_bucket{namespace="podinfo"}[1m])) by (le)
+              ) * 1000 > 50
+            for: 30s
+            labels:
+              severity: warning
+            annotations:
+              summary: "P95 Latency가 베이스라인(50ms)을 초과"
+              description: "현재 P95: {{ $value }}ms"
+
+          # P99 Latency > 200ms
+          - alert: HighLatencyP99
+            expr: |
+              histogram_quantile(0.99,
+                sum(rate(http_request_duration_seconds_bucket{namespace="podinfo"}[1m])) by (le)
+              ) * 1000 > 200
+            for: 30s
+            labels:
+              severity: critical
+            annotations:
+              summary: "P99 Latency가 베이스라인(200ms)을 초과"
+              description: "현재 P99: {{ $value }}ms"
+
+          # Error Rate > 0.1%
+          - alert: HighErrorRate
+            expr: |
+              sum(rate(http_requests_total{namespace="podinfo", status=~"5.."}[1m]))
+              /
+              sum(rate(http_requests_total{namespace="podinfo"}[1m]))
+              * 100 > 0.1
+            for: 15s
+            labels:
+              severity: critical
+            annotations:
+              summary: "Error Rate가 베이스라인(0.1%)을 초과"
+              description: "현재 Error Rate: {{ $value }}%"
+
+          # RPS < 120 (트래픽 급감)
+          - alert: LowThroughput
+            expr: |
+              sum(rate(http_requests_total{namespace="podinfo"}[1m])) < 120
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Throughput이 베이스라인(120 req/s) 미만"
+              description: "현재 RPS: {{ $value }}"
