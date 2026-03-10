@@ -1,8 +1,8 @@
-replicaCount: 3
+replicaCount: 5
 hpa:
   enabled: true
   maxReplicas: 10
-  cpu: 70
+  cpu: 60
 serviceMonitor:
   enabled: true
   additionalLabels:
