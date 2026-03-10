@@ -17,14 +17,17 @@ spec:
       name: "{{ .name }}"
     spec:
       project: default
-      source:
-        repoURL: "{{ .repoURL }}"
-        chart: "{{ .chart }}"
-        targetRevision: "{{ .targetRevision }}"
-        helm:
-          valueFiles:
-            - $values/apps/monitoring/{{ .name }}/values.yaml         # 공통
-            - $values/apps/monitoring/{{ .name }}/local/values.yaml   # 환경별
+      sources:
+        - repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
+          targetRevision: feature/on-prem/#4-argocd-addon
+          ref: values
+        - repoURL: "{{ .repoURL }}"
+          chart: "{{ .chart }}"
+          targetRevision: "{{ .targetRevision }}"
+          helm:
+            valueFiles:
+              - $values/apps/monitoring/{{ .name }}/values.yaml         # 공통
+              - $values/apps/monitoring/{{ .name }}/local/values.yaml   # 환경별
       destination:
         server: https://kubernetes.default.svc
         namespace: "{{ .namespace }}"
