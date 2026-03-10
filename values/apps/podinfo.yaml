@@ -19,6 +19,26 @@ faults:
   error: 0
 podDisruptionBudget:
   minAvailable: 2
+# ── Probe 튜닝 (장애 감지 속도 향상) ──
+probes:
+  readiness:
+    initialDelaySeconds: 1
+    timeoutSeconds: 2
+    failureThreshold: 2
+    successThreshold: 1
+    periodSeconds: 5
+  liveness:
+    initialDelaySeconds: 1
+    timeoutSeconds: 2
+    failureThreshold: 3
+    successThreshold: 1
+    periodSeconds: 10
+# ── Ingress + timeout/retry ──
 ingress:
   enabled: true
   className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "1"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "0.3"
+    nginx.ingress.kubernetes.io/proxy-next-upstream: "error timeout http_502 http_503"
+    nginx.ingress.kubernetes.io/proxy-next-upstream-tries: "3"
