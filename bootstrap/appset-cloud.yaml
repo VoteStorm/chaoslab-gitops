@@ -47,7 +47,7 @@ spec:
                 - name: votestorm-base
                   namespace: argocd
                   chart: ""
-                  repoURL: https://github.com/VoteStorm/VoteStorm_GitopsRepo.git
+                  repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
                   targetRevision: main
                   sourceType: git
 
