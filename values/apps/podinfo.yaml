@@ -1,4 +1,11 @@
 replicaCount: 7
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: podinfo
 hpa:
   enabled: true
   maxReplicas: 10
