@@ -1,0 +1,13 @@
+# ArgoCD Helm values — 클라우드 환경 (GCP)
+server:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hosts:
+      - argocd.34.64.241.165.nip.io
+    tls:
+      - hosts:
+          - argocd.34.64.241.165.nip.io
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"

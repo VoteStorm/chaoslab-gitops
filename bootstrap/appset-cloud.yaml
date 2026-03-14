@@ -1,0 +1,159 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: chaoslab-apps
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - git:
+              repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
+              revision: "refactor/#2-application-set"
+              files:
+                - path: env/cloud.json
+          - list:
+              elements:
+                - name: podinfo
+                  namespace: podinfo
+                  chart: podinfo
+                  repoURL: https://stefanprodan.github.io/podinfo
+                  targetRevision: "6.7.0"
+                  sourceType: helm
+
+                - name: kube-prometheus-stack
+                  namespace: monitoring
+                  chart: kube-prometheus-stack
+                  repoURL: https://prometheus-community.github.io/helm-charts
+                  targetRevision: "55.5.0"
+                  sourceType: helm
+
+                - name: chaos-mesh
+                  namespace: chaos-mesh
+                  chart: chaos-mesh
+                  repoURL: https://charts.chaos-mesh.org
+                  targetRevision: "2.6.3"
+                  sourceType: helm
+
+                - name: loki
+                  namespace: monitoring
+                  chart: loki-stack
+                  repoURL: https://grafana.github.io/helm-charts
+                  targetRevision: "2.10.2"
+                  sourceType: helm
+
+                - name: chaoslab-base
+                  namespace: argocd
+                  chart: ""
+                  repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
+                  targetRevision: "refactor/#2-application-set"
+                  sourceType: git
+
+  template:
+    metadata:
+      name: "{{ .name }}"
+    spec:
+      project: default
+      sources:
+        - repoURL: "{{ .repoURL }}"
+          targetRevision: "{{ .targetRevision }}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{ .namespace }}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+
+  templatePatch: |
+    {{- if eq .name "podinfo" }}
+    spec:
+      sources:
+        - repoURL: {{ .repoURL }}
+          chart: {{ .chart }}
+          targetRevision: {{ .targetRevision }}
+          helm:
+            valueFiles:
+              - $values/values/apps/podinfo.yaml
+            values: |
+              ingress:
+                hosts:
+                  - host: podinfo.{{ .domain }}
+                    paths:
+                      - path: /
+                        pathType: Prefix
+        - repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
+          targetRevision: "refactor/#2-application-set"
+          ref: values
+    {{- end }}
+
+    {{- if eq .name "kube-prometheus-stack" }}
+    spec:
+      sources:
+        - repoURL: {{ .repoURL }}
+          chart: {{ .chart }}
+          targetRevision: {{ .targetRevision }}
+          helm:
+            skipCrds: true
+            valueFiles:
+              - $values/values/apps/prometheus.yaml
+            values: |
+              grafana:
+                ingress:
+                  hosts:
+                    - grafana.{{ .domain }}
+        - repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
+          targetRevision: "refactor/#2-application-set"
+          ref: values
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
+    {{- end }}
+
+    {{- if eq .name "chaos-mesh" }}
+    spec:
+      sources:
+        - repoURL: {{ .repoURL }}
+          chart: {{ .chart }}
+          targetRevision: {{ .targetRevision }}
+          helm:
+            skipCrds: true
+            valueFiles:
+              - $values/values/apps/chaos-mesh.yaml
+            values: |
+              dashboard:
+                ingress:
+                  hosts:
+                    - name: chaos.{{ .domain }}
+                      tls: false
+        - repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
+          targetRevision: "refactor/#2-application-set"
+          ref: values
+    {{- end }}
+
+    {{- if eq .name "loki" }}
+    spec:
+      sources:
+        - repoURL: {{ .repoURL }}
+          chart: {{ .chart }}
+          targetRevision: {{ .targetRevision }}
+          helm:
+            valueFiles:
+              - $values/values/apps/loki.yaml
+        - repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
+          targetRevision: "refactor/#2-application-set"
+          ref: values
+    {{- end }}
+
+    {{- if eq .sourceType "git" }}
+    spec:
+      sources:
+        - repoURL: {{ .repoURL }}
+          targetRevision: {{ .targetRevision }}
+          path: charts/chaoslab-base
+    {{- end }}

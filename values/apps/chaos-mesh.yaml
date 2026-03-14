@@ -1,0 +1,8 @@
+chaosDaemon:
+  runtime: containerd
+  socketPath: /run/containerd/containerd.sock
+dashboard:
+  create: true
+  ingress:
+    enabled: true
+    ingressClassName: nginx
