@@ -1,0 +1,9 @@
+loki:
+  persistence:
+    enabled: true
+    size: 10Gi
+
+grafana:
+  sidecar:
+    datasources:
+      enabled: false
