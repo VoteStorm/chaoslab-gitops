@@ -1,0 +1,42 @@
+# bootstrap/local/apps-appset.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - git:
+        repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
+        revision: feature/on-prem/#10-podinfo-chaos-mesh
+        files:
+          - path: apps/podinfo/app.yaml
+          - path: apps/chaos-mesh/app.yaml
+  template:
+    metadata:
+      name: "{{ .name }}"
+    spec:
+      project: default
+      sources:
+        - repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
+          targetRevision: feature/on-prem/#10-podinfo-chaos-mesh
+          ref: values
+        - repoURL: "{{ .repoURL }}"
+          chart: "{{ .chart }}"
+          targetRevision: "{{ .targetRevision }}"
+          helm:
+            valueFiles:
+              - $values/apps/{{ .name }}/values.yaml
+              - $values/apps/{{ .name }}/local/values.yaml
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{ .namespace }}"
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ServerSideApply=true
