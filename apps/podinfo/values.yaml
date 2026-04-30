@@ -12,9 +12,7 @@ hpa:
   enabled: true
   minReplicas: 3
   maxReplicas: 6
-  cpu:
-    enabled: true
-    targetAverageUtilization: 50
+  cpu: 50
 
 serviceMonitor:
   enabled: true
