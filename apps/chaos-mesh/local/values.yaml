@@ -4,7 +4,7 @@ dashboard:
     type: ClusterIP
   ingress:
     enabled: true
-    className: nginx
+    ingressClassName: nginx
     hosts:
       - name: chaos-mesh.chaos-lab.local
         tls: false
