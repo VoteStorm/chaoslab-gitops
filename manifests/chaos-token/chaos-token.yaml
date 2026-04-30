@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: chaos-admin-token
+  namespace: default
   annotations:
     kubernetes.io/service-account.name: chaos-admin
-  namespace: default
 type: kubernetes.io/service-account-token
