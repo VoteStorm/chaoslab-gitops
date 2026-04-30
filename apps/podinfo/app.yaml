@@ -1,0 +1,5 @@
+name: podinfo
+namespace: podinfo
+repoURL: https://stefanprodan.github.io/podinfo
+chart: podinfo
+targetRevision: "6.9.0"
