@@ -1,0 +1,11 @@
+controllerManager:
+  enableFilterNamespace: false
+  replicaCount: 1
+
+prometheus:
+  monitor:
+    enabled: true
+    namespace: chaos-mesh
+    additionalLabels:
+      release: kube-prometheus-stack
+    interval: 15s

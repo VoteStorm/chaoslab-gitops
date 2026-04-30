@@ -1,0 +1,14 @@
+dashboard:
+  enabled: true
+  service:
+    type: ClusterIP
+  ingress:
+    enabled: true
+    className: nginx
+    hosts:
+      - name: chaos-mesh.chaos-lab.local
+        tls: false
+
+chaosDaemon:
+  runtime: containerd
+  socketPath: /run/containerd/containerd.sock

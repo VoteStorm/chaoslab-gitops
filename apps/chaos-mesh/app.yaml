@@ -1,0 +1,5 @@
+name: chaos-mesh
+namespace: chaos-mesh
+repoURL: https://charts.chaos-mesh.org
+chart: chaos-mesh
+targetRevision: "2.7.2"
