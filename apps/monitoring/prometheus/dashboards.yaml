@@ -3,17 +3,17 @@ grafana:
     dashboardproviders.yaml:
       apiVersion: 1
       providers:
-        - name: default
+        - name: chaos-lab
           orgId: 1
           folder: Chaos Lab
           type: file
           disableDeletion: false
           editable: true
           options:
-            path: /var/lib/grafana/dashboards/default
+            path: /var/lib/grafana/dashboards/chaos-lab
 
   dashboards:
-    default:
+    chaos-lab:
       podinfo-chaos-lab:
         json: |
           {
