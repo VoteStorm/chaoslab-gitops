@@ -1,0 +1,277 @@
+grafana:
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: default
+          orgId: 1
+          folder: Chaos Lab
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/default
+
+  dashboards:
+    default:
+      podinfo-chaos-lab:
+        json: |
+          {
+            "uid": "podinfo-chaos-lab",
+            "title": "podinfo Chaos Lab",
+            "tags": [
+              "podinfo",
+              "chaos-mesh",
+              "sre"
+            ],
+            "timezone": "browser",
+            "schemaVersion": 39,
+            "version": 1,
+            "refresh": "10s",
+            "time": {
+              "from": "now-30m",
+              "to": "now"
+            },
+            "panels": [
+              {
+                "id": 1,
+                "title": "Ready Pods",
+                "type": "stat",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+                },
+                "targets": [
+                  {
+                    "expr": "sum(kube_pod_status_ready{namespace=\"podinfo\",condition=\"true\",pod=~\"podinfo.*\"})",
+                    "refId": "A"
+                  }
+                ],
+                "gridPos": {
+                  "h": 4,
+                  "w": 6,
+                  "x": 0,
+                  "y": 0
+                }
+              },
+              {
+                "id": 2,
+                "title": "Restarts in 5m",
+                "type": "stat",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+                },
+                "targets": [
+                  {
+                    "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"podinfo\",pod=~\"podinfo.*\"}[5m]))",
+                    "refId": "A"
+                  }
+                ],
+                "gridPos": {
+                  "h": 4,
+                  "w": 6,
+                  "x": 6,
+                  "y": 0
+                }
+              },
+              {
+                "id": 3,
+                "title": "Request Rate",
+                "type": "timeseries",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+                },
+                "targets": [
+                  {
+                    "expr": "sum(rate(http_requests_total{namespace=\"podinfo\"}[1m]))",
+                    "legendFormat": "rps",
+                    "refId": "A"
+                  }
+                ],
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "reqps"
+                  },
+                  "overrides": []
+                },
+                "gridPos": {
+                  "h": 8,
+                  "w": 12,
+                  "x": 0,
+                  "y": 4
+                }
+              },
+              {
+                "id": 4,
+                "title": "5xx Rate",
+                "type": "timeseries",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+                },
+                "targets": [
+                  {
+                    "expr": "sum(rate(http_requests_total{namespace=\"podinfo\",status=~\"5..\"}[1m])) or vector(0)",
+                    "legendFormat": "5xx/s",
+                    "refId": "A"
+                  }
+                ],
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "reqps"
+                  },
+                  "overrides": []
+                },
+                "gridPos": {
+                  "h": 8,
+                  "w": 12,
+                  "x": 12,
+                  "y": 4
+                }
+              },
+              {
+                "id": 5,
+                "title": "p95 Latency",
+                "type": "timeseries",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+                },
+                "targets": [
+                  {
+                    "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace=\"podinfo\"}[1m])) by (le))",
+                    "legendFormat": "p95",
+                    "refId": "A"
+                  }
+                ],
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "s"
+                  },
+                  "overrides": []
+                },
+                "gridPos": {
+                  "h": 8,
+                  "w": 12,
+                  "x": 0,
+                  "y": 12
+                }
+              },
+              {
+                "id": 6,
+                "title": "CPU Usage by Pod",
+                "type": "timeseries",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+                },
+                "targets": [
+                  {
+                    "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"podinfo\",pod=~\"podinfo.*\",container!=\"\",image!=\"\"}[1m])) by (pod)",
+                    "legendFormat": "{{pod}}",
+                    "refId": "A"
+                  }
+                ],
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "cores"
+                  },
+                  "overrides": []
+                },
+                "gridPos": {
+                  "h": 8,
+                  "w": 12,
+                  "x": 12,
+                  "y": 12
+                }
+              },
+              {
+                "id": 7,
+                "title": "Memory Working Set by Pod",
+                "type": "timeseries",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+                },
+                "targets": [
+                  {
+                    "expr": "sum(container_memory_working_set_bytes{namespace=\"podinfo\",pod=~\"podinfo.*\",container!=\"\",image!=\"\"}) by (pod)",
+                    "legendFormat": "{{pod}}",
+                    "refId": "A"
+                  }
+                ],
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "bytes"
+                  },
+                  "overrides": []
+                },
+                "gridPos": {
+                  "h": 8,
+                  "w": 12,
+                  "x": 0,
+                  "y": 20
+                }
+              },
+              {
+                "id": 8,
+                "title": "HPA Replicas",
+                "type": "timeseries",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+                },
+                "targets": [
+                  {
+                    "expr": "kube_horizontalpodautoscaler_status_current_replicas{namespace=\"podinfo\",horizontalpodautoscaler=\"podinfo\"}",
+                    "legendFormat": "current",
+                    "refId": "A"
+                  },
+                  {
+                    "expr": "kube_horizontalpodautoscaler_status_desired_replicas{namespace=\"podinfo\",horizontalpodautoscaler=\"podinfo\"}",
+                    "legendFormat": "desired",
+                    "refId": "B"
+                  }
+                ],
+                "gridPos": {
+                  "h": 8,
+                  "w": 12,
+                  "x": 12,
+                  "y": 20
+                }
+              },
+              {
+                "id": 9,
+                "title": "Error Rate (%)",
+                "type": "stat",
+                "datasource": {
+                  "type": "prometheus",
+                  "uid": "prometheus"
+                },
+                "targets": [
+                  {
+                    "expr": "((sum(rate(http_requests_total{namespace=\"podinfo\",status=~\"5..\"}[2m])) or vector(0)) / clamp_min(sum(rate(http_requests_total{namespace=\"podinfo\"}[2m])), 0.001))",
+                    "legendFormat": "error rate",
+                    "refId": "A"
+                  }
+                ],
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "percentunit",
+                    "min": 0,
+                    "max": 1
+                  },
+                  "overrides": []
+                },
+                "options": {},
+                "gridPos": {
+                  "h": 4,
+                  "w": 6,
+                  "x": 12,
+                  "y": 0
+                }
+              }
+            ]
+          }
