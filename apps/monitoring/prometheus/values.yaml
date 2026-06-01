@@ -42,7 +42,7 @@ alertmanager:
       - name: podinfo-discord
         discord_configs:
           - send_resolved: true
-            api_url_file: /etc/alertmanager/secrets/podinfo-alert-discord-webhook
+            webhook_url_file: /etc/alertmanager/secrets/podinfo-alert-discord-webhook
             title: '{{ .CommonLabels.alertname }}'
             message: |
               [{{ .Status | toUpper }}] {{ .CommonAnnotations.summary }}
