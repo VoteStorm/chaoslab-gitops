@@ -9,7 +9,7 @@ spec:
   generators:
     - git:
         repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
-        revision: feature/on-prem/#4-argocd-addon
+        revision: feature/on-prem/#10-podinfo-chaos-mesh
         files:
           - path: apps/monitoring/*/app.yaml
   template:
