@@ -27,6 +27,9 @@ alertmanager:
       matchLabels:
         kubernetes.io/metadata.name: monitoring
 
+    alertmanagerConfigMatcherStrategy:
+      type: None
+
 extraManifests:
   - apiVersion: monitoring.coreos.com/v1alpha1
     kind: AlertmanagerConfig
@@ -37,6 +40,7 @@ extraManifests:
         alertmanagerConfig: podinfo-discord
     spec:
       route:
+        receiver: podinfo-discord
         groupBy:
           - namespace
           - service
@@ -45,7 +49,6 @@ extraManifests:
         groupWait: 10s
         groupInterval: 1m
         repeatInterval: 30m
-        receiver: podinfo-discord
         matchers:
           - name: service
             value: podinfo
@@ -57,15 +60,6 @@ extraManifests:
               apiURL:
                 name: podinfo-alert-discord-webhook
                 key: url
-              title: '{{ .CommonLabels.alertname }}'
-              message: |
-                [{{ .Status | toUpper }}] {{ .CommonAnnotations.summary }}
-
-                severity: {{ .CommonLabels.severity }}
-                namespace: {{ .CommonLabels.namespace }}
-                service: {{ .CommonLabels.service }}
-
-                {{ .CommonAnnotations.description }}
 
 grafana:
   adminPassword: admin
