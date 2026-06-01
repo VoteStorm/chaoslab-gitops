@@ -18,40 +18,54 @@ alertmanager:
           resources:
             requests:
               storage: 2Gi
-    secrets:
-      - podinfo-alert-discord-webhook
-  config:
-    global:
-      resolve_timeout: 5m
-    route:
-      group_by:
-        - namespace
-        - service
-        - severity
-        - alertname
-      group_wait: 10s
-      group_interval: 1m
-      repeat_interval: 30m
-      receiver: blackhole
-      routes:
-        - receiver: podinfo-discord
-          matchers:
-            - service = "podinfo"
-    receivers:
-      - name: blackhole
-      - name: podinfo-discord
-        discord_configs:
-          - send_resolved: true
-            webhook_url_file: /etc/alertmanager/secrets/podinfo-alert-discord-webhook
-            title: '{{ .CommonLabels.alertname }}'
-            message: |
-              [{{ .Status | toUpper }}] {{ .CommonAnnotations.summary }}
 
-              severity: {{ .CommonLabels.severity }}
-              namespace: {{ .CommonLabels.namespace }}
-              service: {{ .CommonLabels.service }}
+    alertmanagerConfigSelector:
+      matchLabels:
+        alertmanagerConfig: podinfo-discord
 
-              {{ .CommonAnnotations.description }}
+    alertmanagerConfigNamespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: monitoring
+
+extraManifests:
+  - apiVersion: monitoring.coreos.com/v1alpha1
+    kind: AlertmanagerConfig
+    metadata:
+      name: podinfo-discord
+      namespace: monitoring
+      labels:
+        alertmanagerConfig: podinfo-discord
+    spec:
+      route:
+        groupBy:
+          - namespace
+          - service
+          - severity
+          - alertname
+        groupWait: 10s
+        groupInterval: 1m
+        repeatInterval: 30m
+        receiver: podinfo-discord
+        matchers:
+          - name: service
+            value: podinfo
+            matchType: "="
+      receivers:
+        - name: podinfo-discord
+          discordConfigs:
+            - sendResolved: true
+              apiURL:
+                name: podinfo-alert-discord-webhook
+                key: url
+              title: '{{ .CommonLabels.alertname }}'
+              message: |
+                [{{ .Status | toUpper }}] {{ .CommonAnnotations.summary }}
+
+                severity: {{ .CommonLabels.severity }}
+                namespace: {{ .CommonLabels.namespace }}
+                service: {{ .CommonLabels.service }}
+
+                {{ .CommonAnnotations.description }}
 
 grafana:
   adminPassword: admin
