@@ -1,0 +1,41 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Workflow
+metadata:
+  name: complex-pod-failure-network-delay
+  namespace: chaos-mesh
+spec:
+  entry: entry
+  templates:
+    - name: entry
+      templateType: Parallel
+      children:
+        - pod-failure
+        - network-delay
+
+    - name: pod-failure
+      templateType: PodChaos
+      deadline: 2m
+      podChaos:
+        action: pod-failure
+        mode: one
+        selector:
+          namespaces:
+            - podinfo
+          labelSelectors:
+            app.kubernetes.io/name: podinfo
+
+    - name: network-delay
+      templateType: NetworkChaos
+      deadline: 2m
+      networkChaos:
+        action: delay
+        mode: all
+        selector:
+          namespaces:
+            - podinfo
+          labelSelectors:
+            app.kubernetes.io/name: podinfo
+        delay:
+          latency: "300ms"
+          jitter: "50ms"
+          correlation: "100"
