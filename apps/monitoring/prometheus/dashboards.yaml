@@ -31,8 +31,8 @@ grafana:
                   "datasource": { "type": "prometheus", "uid": "prometheus" },
                   "enable": true,
                   "iconColor": "red",
-                  "expr": "sum(chaos_controller_manager_chaos_experiments{phase=~"running|injecting"}) > 0",
-                  "step": "60s",
+                  "expr": "sum(chaos_controller_manager_chaos_experiments{phase=~\"running|injecting\"}) > 0",
+                  "step": "30s",
                   "titleFormat": "🔴 Chaos 실험 실행",
                   "textFormat": "장애 주입 시작",
                   "hide": false
@@ -42,7 +42,7 @@ grafana:
                   "datasource": { "type": "prometheus", "uid": "prometheus" },
                   "enable": true,
                   "iconColor": "orange",
-                  "expr": "increase(kube_pod_container_status_restarts_total{namespace=\"podinfo\"}[1m]) > 0",
+                  "expr": "increase(kube_pod_container_status_restarts_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[1m]) > 0",
                   "step": "60s",
                   "titleFormat": "🟠 Pod 재시작",
                   "hide": false
