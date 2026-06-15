@@ -156,7 +156,7 @@ grafana:
                 "type": "stat",
                 "gridPos": { "x": 12, "y": 1, "w": 4, "h": 4 },
                 "datasource": { "type": "prometheus", "uid": "prometheus" },
-                "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+                "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
                 "fieldConfig": {
                   "defaults": {
                     "unit": "percent",
