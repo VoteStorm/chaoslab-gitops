@@ -15,18 +15,18 @@ additionalPrometheusRulesMap:
               description: "Prometheus cannot scrape podinfo metrics for more than 1 minute."
 
           - alert: PodinfoNotEnoughReadyPods
-            expr: sum(kube_pod_status_ready{namespace="podinfo", condition="true", pod=~"podinfo.*"}) < 2
-            for: 1m
+            expr: sum(kube_pod_status_ready{namespace="podinfo", condition="true", pod=~"podinfo-.*"}) < 3
+            for: 30s
             labels:
               severity: warning
               service: podinfo
               namespace: podinfo
             annotations:
               summary: "podinfo ready pod count is below threshold"
-              description: "Ready pod count is below 2. Check PodChaos, readiness failure, scheduling, or application health."
+              description: "Ready pod count is below 3. Check for Pod Failure, readiness failure, scheduling, or application health."
 
           - alert: PodinfoPodRestarted
-            expr: sum(increase(kube_pod_container_status_restarts_total{namespace="podinfo", pod=~"podinfo.*"}[5m])) > 0
+            expr: sum(increase(kube_pod_container_status_restarts_total{namespace="podinfo", pod=~"podinfo-.*"}[2m])) > 0
             for: 0m
             labels:
               severity: warning
@@ -34,7 +34,7 @@ additionalPrometheusRulesMap:
               namespace: podinfo
             annotations:
               summary: "podinfo pod restarted"
-              description: "podinfo container restarted within the last 5 minutes."
+              description: "podinfo container restarted within the last 2 minutes. Check for Pod Failure,liveness failure, recent deployments, or container logs."
 
           - alert: PodinfoOOMKilled
             expr: max_over_time(kube_pod_container_status_last_terminated_reason{namespace="podinfo", pod=~"podinfo.*", reason="OOMKilled"}[5m]) == 1
