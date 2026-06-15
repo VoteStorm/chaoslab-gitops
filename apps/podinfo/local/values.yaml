@@ -1,0 +1,19 @@
+# worker 2개 환경에서 노드 분산 보장
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: podinfo
+          topologyKey: kubernetes.io/hostname
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: podinfo.chaos-lab.local
+      paths:
+        - path: /
+          pathType: Prefix

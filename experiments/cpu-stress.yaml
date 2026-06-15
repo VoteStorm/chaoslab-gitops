@@ -1,0 +1,17 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: podinfo-cpu-stress
+  namespace: chaos-mesh
+spec:
+  mode: all
+  duration: "5m"
+  selector:
+    namespaces:
+      - podinfo
+    labelSelectors:
+      app.kubernetes.io/name: podinfo
+  stressors:
+    cpu:
+      workers: 2
+      load: 80

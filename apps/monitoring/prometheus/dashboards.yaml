@@ -1,0 +1,744 @@
+grafana:
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: chaos-lab
+          orgId: 1
+          folder: Chaos Lab
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/chaos-lab
+
+  dashboards:
+    chaos-lab:
+      podinfo-chaos-lab:
+        json: |
+          {
+            "title": "Podinfo Chaos Dashboard",
+            "uid": "podinfo-chaos",
+            "timezone": "browser",
+            "schemaVersion": 36,
+            "version": 1,
+            "refresh": "10s",
+            "time": { "from": "now-30m", "to": "now" },
+            "annotations": {
+              "list": [
+                {
+                  "name": "Chaos Experiment Running",
+                  "datasource": { "type": "prometheus", "uid": "prometheus" },
+                  "enable": true,
+                  "iconColor": "red",
+                  "expr": "sum(chaos_controller_manager_chaos_experiments{phase=~\"running|injecting\"}) > 0",
+                  "step": "30s",
+                  "titleFormat": "🔴 Chaos 실험 실행",
+                  "textFormat": "장애 주입 시작",
+                  "hide": false
+                },
+                {
+                  "name": "Pod Restart",
+                  "datasource": { "type": "prometheus", "uid": "prometheus" },
+                  "enable": true,
+                  "iconColor": "orange",
+                  "expr": "increase(kube_pod_container_status_restarts_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[1m]) > 0",
+                  "step": "60s",
+                  "titleFormat": "🟠 Pod 재시작",
+                  "hide": false
+                },
+                {
+                  "name": "HPA Scale",
+                  "datasource": { "type": "prometheus", "uid": "prometheus" },
+                  "enable": true,
+                  "iconColor": "blue",
+                  "expr": "changes(kube_horizontalpodautoscaler_status_current_replicas{namespace=\"podinfo\"}[1m]) > 0",
+                  "step": "60s",
+                  "titleFormat": "🔵 HPA 스케일링",
+                  "textFormat": "Replica 수 변경",
+                  "hide": false
+                }
+              ]
+            },
+            "panels": [
+
+              {
+                "id": 1,
+                "title": "Overview",
+                "type": "row",
+                "collapsed": false,
+                "gridPos": { "x": 0, "y": 0, "w": 24, "h": 1 }
+              },
+              {
+                "id": 2,
+                "title": "Ready Pod 수",
+                "type": "stat",
+                "gridPos": { "x": 0, "y": 1, "w": 4, "h": 4 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "short",
+                    "color": { "mode": "thresholds" },
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        { "color": "red", "value": null },
+                        { "color": "yellow", "value": 1 },
+                        { "color": "green", "value": 3 }
+                      ]
+                    }
+                  }
+                },
+                "targets": [{
+                  "datasource": { "type": "prometheus", "uid": "prometheus" },
+                  "expr": "sum(kube_pod_status_ready{namespace=\"podinfo\", pod=~\"podinfo-.*\", condition=\"true\"}) or vector(0)",
+                  "legendFormat": "Ready Pods"
+                }]
+              },
+              {
+                "id": 3,
+                "title": "p99 Latency",
+                "type": "stat",
+                "gridPos": { "x": 4, "y": 1, "w": 4, "h": 4 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "ms",
+                    "color": { "mode": "thresholds" },
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        { "color": "green", "value": null },
+                        { "color": "yellow", "value": 200 },
+                        { "color": "red", "value": 500 }
+                      ]
+                    }
+                  }
+                },
+                "targets": [{
+                  "datasource": { "type": "prometheus", "uid": "prometheus" },
+                  "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{namespace=\"podinfo\"}[$__rate_interval])) by (le)) * 1000",
+                  "legendFormat": "p99"
+                }]
+              },
+              {
+                "id": 4,
+                "title": "5xx 에러율",
+                "type": "stat",
+                "gridPos": { "x": 8, "y": 1, "w": 4, "h": 4 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "percent",
+                    "color": { "mode": "thresholds" },
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        { "color": "green", "value": null },
+                        { "color": "yellow", "value": 1 },
+                        { "color": "red", "value": 5 }
+                      ]
+                    }
+                  }
+                },
+                "targets": [{
+                  "datasource": { "type": "prometheus", "uid": "prometheus" },
+                  "expr": "(100 * (sum(rate(http_requests_total{namespace=\"podinfo\", pod=~\"podinfo-.*\", status=~\"5..\"}[$__rate_interval])) or 0 * sum(rate(http_requests_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval]))) / sum(rate(http_requests_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval]))) and sum(rate(http_requests_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval])) > 0",
+                  "legendFormat": "Error %"
+                }]
+              },
+              {
+                "id": 5,
+                "title": "CPU 최대 사용률",
+                "type": "stat",
+                "gridPos": { "x": 12, "y": 1, "w": 4, "h": 4 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "options": { "reduceOptions": { "calcs": ["max"] }, "colorMode": "background" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "percent",
+                    "color": { "mode": "thresholds" },
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        { "color": "green", "value": null },
+                        { "color": "yellow", "value": 50 },
+                        { "color": "red", "value": 80 }
+                      ]
+                    }
+                  }
+                },
+                "targets": [{
+                  "datasource": { "type": "prometheus", "uid": "prometheus" },
+                  "expr": "max(sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"podinfo\", container=\"podinfo\"}[$__rate_interval])) / sum by (pod) (kube_pod_container_resource_requests{namespace=\"podinfo\", container=\"podinfo\", resource=\"cpu\"})) * 100",
+                  "legendFormat": "Max CPU %"
+                }]
+              },
+              {
+                "id": 6,
+                "title": "HPA Replica",
+                "type": "stat",
+                "gridPos": { "x": 16, "y": 1, "w": 4, "h": 4 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "short",
+                    "color": { "mode": "thresholds" },
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        { "color": "green", "value": null },
+                        { "color": "blue", "value": 4 }
+                      ]
+                    }
+                  }
+                },
+                "targets": [{
+                  "datasource": { "type": "prometheus", "uid": "prometheus" },
+                  "expr": "kube_horizontalpodautoscaler_status_current_replicas{namespace=\"podinfo\", horizontalpodautoscaler=\"podinfo\"}",
+                  "legendFormat": "Replicas"
+                }]
+              },
+              {
+                "id": 7,
+                "title": "실행 중인 Chaos 실험 수",
+                "type": "stat",
+                "gridPos": { "x": 20, "y": 1, "w": 4, "h": 4 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "short",
+                    "color": { "mode": "thresholds" },
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        { "color": "green", "value": null },
+                        { "color": "red", "value": 1 }
+                      ]
+                    }
+                  }
+                },
+                "targets": [{
+                  "datasource": { "type": "prometheus", "uid": "prometheus" },
+                  "expr": "sum(chaos_controller_manager_chaos_experiments{phase=~\"running|injecting\"}) or 0 * sum(chaos_controller_manager_chaos_experiments)",
+                  "legendFormat": "Active"
+                }]
+              },
+
+              {
+                "id": 100,
+                "title": "Pod Health",
+                "type": "row",
+                "collapsed": false,
+                "gridPos": { "x": 0, "y": 6, "w": 24, "h": 1 }
+              },
+              {
+                "id": 101,
+                "title": "Pod 상태 (Running / Pending / Failed)",
+                "description": "각 phase별 pod 수. 장애 주입 시 Running 감소 및 Failed/Pending 증가를 관찰합니다.",
+                "type": "timeseries",
+                "gridPos": { "x": 0, "y": 7, "w": 8, "h": 7 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "fieldConfig": {
+                  "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+                  "overrides": [
+                    {
+                      "matcher": { "id": "byName", "options": "Running" },
+                      "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+                    },
+                    {
+                      "matcher": { "id": "byName", "options": "Failed" },
+                      "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+                    },
+                    {
+                      "matcher": { "id": "byName", "options": "Pending" },
+                      "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }]
+                    }
+                  ]
+                },
+                "targets": [
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "sum(kube_pod_status_phase{namespace=\"podinfo\", phase=\"Running\"}) or vector(0)",
+                    "legendFormat": "Running"
+                  },
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "sum(kube_pod_status_phase{namespace=\"podinfo\", phase=\"Pending\"}) or vector(0)",
+                    "legendFormat": "Pending"
+                  },
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "sum(kube_pod_status_phase{namespace=\"podinfo\", phase=\"Failed\"}) or vector(0)",
+                    "legendFormat": "Failed"
+                  }
+                ]
+              },
+              {
+                "id": 102,
+                "title": "컨테이너 재시작 횟수 (누적)",
+                "description": "Pod Failure 주입 시 재시작 횟수가 증가합니다. 급격한 증가는 CrashLoopBackOff 진입을 의미합니다.",
+                "type": "timeseries",
+                "gridPos": { "x": 8, "y": 7, "w": 8, "h": 7 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "short",
+                    "color": { "fixedColor": "orange", "mode": "fixed" },
+                    "custom": { "lineWidth": 2, "fillOpacity": 15 }
+                  }
+                },
+                "targets": [{
+                  "datasource": { "type": "prometheus", "uid": "prometheus" },
+                  "expr": "sum by (pod) (kube_pod_container_status_restarts_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"})",
+                  "legendFormat": "{{pod}}"
+                }]
+              },
+              {
+                "id": 103,
+                "title": "재시작 Rate (/min)",
+                "description": "분당 재시작 비율. 장애 주입 구간에서 급등 여부를 확인합니다.",
+                "type": "timeseries",
+                "gridPos": { "x": 16, "y": 7, "w": 8, "h": 7 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "short",
+                    "color": { "fixedColor": "red", "mode": "fixed" },
+                    "custom": { "lineWidth": 2, "fillOpacity": 15, "drawStyle": "bars" }
+                  }
+                },
+                "targets": [{
+                  "datasource": { "type": "prometheus", "uid": "prometheus" },
+                  "expr": "sum by (pod) (rate(kube_pod_container_status_restarts_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval])) * 60",
+                  "legendFormat": "{{pod}}"
+                }]
+              },
+
+              {
+                "id": 200,
+                "title": "Traffic & Latency",
+                "type": "row",
+                "collapsed": false,
+                "gridPos": { "x": 0, "y": 15, "w": 24, "h": 1 }
+              },
+              {
+                "id": 201,
+                "title": "Latency Percentiles (p50 / p95 / p99)",
+                "description": "Network Delay 주입 시 p99부터 상승합니다. p50과 p99의 gap이 클수록 일부 요청에 집중된 지연임을 의미합니다.",
+                "type": "timeseries",
+                "gridPos": { "x": 0, "y": 16, "w": 8, "h": 7 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "fieldConfig": {
+                  "defaults": { "unit": "ms", "custom": { "lineWidth": 2, "fillOpacity": 5 } },
+                  "overrides": [
+                    {
+                      "matcher": { "id": "byName", "options": "p99" },
+                      "properties": [
+                        { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } },
+                        { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 5] } }
+                      ]
+                    },
+                    {
+                      "matcher": { "id": "byName", "options": "p95" },
+                      "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
+                    },
+                    {
+                      "matcher": { "id": "byName", "options": "p50" },
+                      "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+                    }
+                  ]
+                },
+                "targets": [
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{namespace=\"podinfo\"}[$__rate_interval])) by (le)) * 1000",
+                    "legendFormat": "p50"
+                  },
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace=\"podinfo\"}[$__rate_interval])) by (le)) * 1000",
+                    "legendFormat": "p95"
+                  },
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{namespace=\"podinfo\"}[$__rate_interval])) by (le)) * 1000",
+                    "legendFormat": "p99"
+                  }
+                ]
+              },
+              {
+                "id": 202,
+                "title": "Request Rate (Total / 2xx)",
+                "description": "전체 요청 수 대비 정상 응답 비율. Network Loss 주입 시 Total은 유지되지만 2xx가 감소합니다.",
+                "type": "timeseries",
+                "gridPos": { "x": 8, "y": 16, "w": 8, "h": 7 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "fieldConfig": {
+                  "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
+                },
+                "targets": [
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "sum(rate(http_requests_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval]))",
+                    "legendFormat": "Total RPS"
+                  },
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "sum(rate(http_requests_total{namespace=\"podinfo\", pod=~\"podinfo-.*\", status=~\"2..\"}[$__rate_interval])) or 0 * sum(rate(http_requests_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval]))",
+                    "legendFormat": "2xx RPS"
+                  }
+                ]
+              },
+              {
+                "id": 203,
+                "title": "Error Rate (5xx / 4xx)",
+                "description": "Network Loss 주입 시 5xx 에러율이 상승합니다. Pod Failure 복합 장애 시 더 높은 에러율이 관찰됩니다.",
+                "type": "timeseries",
+                "gridPos": { "x": 16, "y": 16, "w": 8, "h": 7 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "percent",
+                    "custom": {
+                      "lineWidth": 2,
+                      "fillOpacity": 20,
+                      "thresholdsStyle": { "mode": "line" }
+                    },
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        { "color": "green", "value": null },
+                        { "color": "yellow", "value": 1 },
+                        { "color": "red", "value": 5 }
+                      ]
+                    }
+                  }
+                },
+                "targets": [
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "(100 * (sum(rate(http_requests_total{namespace=\"podinfo\", pod=~\"podinfo-.*\", status=~\"5..\"}[$__rate_interval])) or 0 * sum(rate(http_requests_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval]))) / sum(rate(http_requests_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval]))) and sum(rate(http_requests_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval])) > 0",
+                    "legendFormat": "5xx %"
+                  },
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "(100 * (sum(rate(http_requests_total{namespace=\"podinfo\", pod=~\"podinfo-.*\", status=~\"4..\"}[$__rate_interval])) or 0 * sum(rate(http_requests_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval]))) / sum(rate(http_requests_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval]))) and sum(rate(http_requests_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval])) > 0",
+                    "legendFormat": "4xx %"
+                  }
+                ]
+              },
+
+              {
+                "id": 300,
+                "title": "CPU & Memory",
+                "type": "row",
+                "collapsed": false,
+                "gridPos": { "x": 0, "y": 24, "w": 24, "h": 1 }
+              },
+              {
+                "id": 301,
+                "title": "CPU 사용률 per Pod (requests 대비 %)",
+                "description": "CPU Stress 주입 시 특정 pod의 사용률이 급등합니다. HPA 임계값(50%) 초과 시 스케일 아웃이 트리거됩니다.",
+                "type": "timeseries",
+                "gridPos": { "x": 0, "y": 25, "w": 8, "h": 7 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "percent",
+                    "custom": {
+                      "lineWidth": 2,
+                      "fillOpacity": 10,
+                      "thresholdsStyle": { "mode": "line" }
+                    },
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        { "color": "green", "value": null },
+                        { "color": "yellow", "value": 50 },
+                        { "color": "red", "value": 80 }
+                      ]
+                    }
+                  }
+                },
+                "targets": [{
+                  "datasource": { "type": "prometheus", "uid": "prometheus" },
+                  "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"podinfo\", container=\"podinfo\"}[$__rate_interval])) / sum by (pod) (kube_pod_container_resource_requests{namespace=\"podinfo\", container=\"podinfo\", resource=\"cpu\"}) * 100",
+                  "legendFormat": "{{pod}}"
+                }]
+              },
+              {
+                "id": 302,
+                "title": "CFS Throttling (%)",
+                "description": "CPU limit에 의해 프로세스가 강제 대기한 비율. 이 값이 높으면 limit이 실질적인 병목입니다.",
+                "type": "timeseries",
+                "gridPos": { "x": 8, "y": 25, "w": 8, "h": 7 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "percent",
+                    "custom": {
+                      "lineWidth": 2,
+                      "fillOpacity": 15,
+                      "thresholdsStyle": { "mode": "line" }
+                    },
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        { "color": "green", "value": null },
+                        { "color": "yellow", "value": 10 },
+                        { "color": "red", "value": 25 }
+                      ]
+                    }
+                  }
+                },
+                "targets": [{
+                  "datasource": { "type": "prometheus", "uid": "prometheus" },
+                  "expr": "sum by (pod) (rate(container_cpu_cfs_throttled_periods_total{namespace=\"podinfo\", container=\"podinfo\"}[$__rate_interval])) / sum by (pod) (rate(container_cpu_cfs_periods_total{namespace=\"podinfo\", container=\"podinfo\"}[$__rate_interval])) * 100",
+                  "legendFormat": "{{pod}}"
+                }]
+              },
+              {
+                "id": 303,
+                "title": "Memory 사용량 vs Limit",
+                "description": "메모리 사용량이 Limit에 근접하면 OOMKill 위험이 있습니다.",
+                "type": "timeseries",
+                "gridPos": { "x": 16, "y": 25, "w": 8, "h": 7 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "bytes",
+                    "custom": { "lineWidth": 2, "fillOpacity": 10 }
+                  },
+                  "overrides": [
+                    {
+                      "matcher": { "id": "byRegexp", "options": ".*limit.*" },
+                      "properties": [
+                        { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } },
+                        { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 5] } },
+                        { "id": "custom.fillOpacity", "value": 0 }
+                      ]
+                    }
+                  ]
+                },
+                "targets": [
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"podinfo\", container=\"podinfo\"})",
+                    "legendFormat": "{{pod}} usage"
+                  },
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "sum by (pod) (kube_pod_container_resource_limits{namespace=\"podinfo\", container=\"podinfo\", resource=\"memory\"})",
+                    "legendFormat": "{{pod}} limit"
+                  }
+                ]
+              },
+
+              {
+                "id": 400,
+                "title": "Scaling",
+                "type": "row",
+                "collapsed": false,
+                "gridPos": { "x": 0, "y": 33, "w": 24, "h": 1 }
+              },
+              {
+                "id": 401,
+                "title": "HPA Replica 현황 (Current / Desired / Min / Max)",
+                "description": "CPU 사용률이 임계값을 초과하면 Desired가 먼저 증가하고 Current가 따라 올라갑니다. 스케일 아웃 지연 시간을 확인합니다.",
+                "type": "timeseries",
+                "gridPos": { "x": 0, "y": 34, "w": 12, "h": 7 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "short",
+                    "decimals": 0,
+                    "custom": { "lineWidth": 2, "fillOpacity": 10 }
+                  },
+                  "overrides": [
+                    {
+                      "matcher": { "id": "byName", "options": "Max" },
+                      "properties": [
+                        { "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } },
+                        { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 5] } },
+                        { "id": "custom.fillOpacity", "value": 0 }
+                      ]
+                    },
+                    {
+                      "matcher": { "id": "byName", "options": "Min" },
+                      "properties": [
+                        { "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } },
+                        { "id": "custom.lineStyle", "value": { "fill": "dash", "dash": [10, 5] } },
+                        { "id": "custom.fillOpacity", "value": 0 }
+                      ]
+                    },
+                    {
+                      "matcher": { "id": "byName", "options": "Current" },
+                      "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
+                    },
+                    {
+                      "matcher": { "id": "byName", "options": "Desired" },
+                      "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
+                    }
+                  ]
+                },
+                "targets": [
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "kube_horizontalpodautoscaler_status_current_replicas{namespace=\"podinfo\"}",
+                    "legendFormat": "Current"
+                  },
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "kube_horizontalpodautoscaler_status_desired_replicas{namespace=\"podinfo\"}",
+                    "legendFormat": "Desired"
+                  },
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"podinfo\"}",
+                    "legendFormat": "Max"
+                  },
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "kube_horizontalpodautoscaler_spec_min_replicas{namespace=\"podinfo\"}",
+                    "legendFormat": "Min"
+                  }
+                ]
+              },
+              {
+                "id": 402,
+                "title": "CPU 사용률 평균 (HPA 판단 기준)",
+                "description": "HPA가 스케일링을 판단하는 기준값. 전체 pod의 평균 CPU 사용률이 임계값(50%)을 초과하면 스케일 아웃이 결정됩니다.",
+                "type": "timeseries",
+                "gridPos": { "x": 12, "y": 34, "w": 12, "h": 7 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "percent",
+                    "custom": {
+                      "lineWidth": 2,
+                      "fillOpacity": 10,
+                      "thresholdsStyle": { "mode": "line" }
+                    },
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        { "color": "green", "value": null },
+                        { "color": "yellow", "value": 50 },
+                        { "color": "red", "value": 80 }
+                      ]
+                    }
+                  }
+                },
+                "targets": [{
+                  "datasource": { "type": "prometheus", "uid": "prometheus" },
+                  "expr": "avg(sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"podinfo\", container=\"podinfo\"}[$__rate_interval])) / sum by (pod) (kube_pod_container_resource_requests{namespace=\"podinfo\", container=\"podinfo\", resource=\"cpu\"})) * 100",
+                  "legendFormat": "평균 CPU %"
+                }]
+              },
+
+              {
+                "id": 500,
+                "title": "Network I/O",
+                "type": "row",
+                "collapsed": false,
+                "gridPos": { "x": 0, "y": 42, "w": 24, "h": 1 }
+              },
+              {
+                "id": 501,
+                "title": "수신 처리량 (Receive)",
+                "description": "pod별 네트워크 수신 처리량.",
+                "type": "timeseries",
+                "gridPos": { "x": 0, "y": 43, "w": 6, "h": 7 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "Bps",
+                    "custom": { "lineWidth": 2, "fillOpacity": 10 }
+                  }
+                },
+                "targets": [{
+                  "datasource": { "type": "prometheus", "uid": "prometheus" },
+                  "expr": "sum by (pod) (rate(container_network_receive_bytes_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval]))",
+                  "legendFormat": "{{pod}}"
+                }]
+              },
+              {
+                "id": 502,
+                "title": "송신 처리량 (Transmit)",
+                "description": "pod별 네트워크 송신 처리량.",
+                "type": "timeseries",
+                "gridPos": { "x": 6, "y": 43, "w": 6, "h": 7 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "Bps",
+                    "custom": { "lineWidth": 2, "fillOpacity": 10 }
+                  }
+                },
+                "targets": [{
+                  "datasource": { "type": "prometheus", "uid": "prometheus" },
+                  "expr": "sum by (pod) (rate(container_network_transmit_bytes_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval]))",
+                  "legendFormat": "{{pod}}"
+                }]
+              },
+              {
+                "id": 503,
+                "title": "패킷 드롭 (rx / tx)",
+                "description": "Network Loss 주입 시 rx_drops 또는 tx_drops가 급증합니다.",
+                "type": "timeseries",
+                "gridPos": { "x": 12, "y": 43, "w": 6, "h": 7 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "pps",
+                    "custom": { "lineWidth": 2, "fillOpacity": 15 }
+                  }
+                },
+                "targets": [
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "sum by (pod) (rate(container_network_receive_packets_dropped_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval])) or 0 * sum by (pod) (rate(container_network_receive_packets_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval]))",
+                    "legendFormat": "{{pod}} rx_drops"
+                  },
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "sum by (pod) (rate(container_network_transmit_packets_dropped_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval])) or 0 * sum by (pod) (rate(container_network_transmit_packets_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval]))",
+                    "legendFormat": "{{pod}} tx_drops"
+                  }
+                ]
+              },
+              {
+                "id": 504,
+                "title": "네트워크 에러 (rx / tx)",
+                "description": "패킷 손실이 에러로 이어지는 경우 이 패널에서 급등을 확인합니다.",
+                "type": "timeseries",
+                "gridPos": { "x": 18, "y": 43, "w": 6, "h": 7 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "pps",
+                    "custom": { "lineWidth": 2, "fillOpacity": 15 }
+                  }
+                },
+                "targets": [
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "sum by (pod) (rate(container_network_receive_errors_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval])) or 0 * sum by (pod) (rate(container_network_receive_packets_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval]))",
+                    "legendFormat": "{{pod}} rx_errors"
+                  },
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "sum by (pod) (rate(container_network_transmit_errors_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval])) or 0 * sum by (pod) (rate(container_network_transmit_packets_total{namespace=\"podinfo\", pod=~\"podinfo-.*\"}[$__rate_interval]))",
+                    "legendFormat": "{{pod}} tx_errors"
+                  }
+                ]
+              }
+
+            ]
+          }

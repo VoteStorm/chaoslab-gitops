@@ -5,6 +5,9 @@ prometheus:
     serviceMonitorNamespaceSelector: {}
     serviceMonitorSelector: {}
     serviceMonitorSelectorNilUsesHelmValues: false
+    ruleNamespaceSelector: {}
+    ruleSelector: {}
+    ruleSelectorNilUsesHelmValues: false
 
 alertmanager:
   alertmanagerSpec:
@@ -15,6 +18,48 @@ alertmanager:
           resources:
             requests:
               storage: 2Gi
+
+    alertmanagerConfigSelector:
+      matchLabels:
+        alertmanagerConfig: podinfo-discord
+
+    alertmanagerConfigNamespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: monitoring
+
+    alertmanagerConfigMatcherStrategy:
+      type: None
+
+extraManifests:
+  - apiVersion: monitoring.coreos.com/v1alpha1
+    kind: AlertmanagerConfig
+    metadata:
+      name: podinfo-discord
+      namespace: monitoring
+      labels:
+        alertmanagerConfig: podinfo-discord
+    spec:
+      route:
+        receiver: podinfo-discord
+        groupBy:
+          - namespace
+          - service
+          - severity
+          - alertname
+        groupWait: 10s
+        groupInterval: 1m
+        repeatInterval: 30m
+        matchers:
+          - name: service
+            value: podinfo
+            matchType: "="
+      receivers:
+        - name: podinfo-discord
+          discordConfigs:
+            - sendResolved: true
+              apiURL:
+                name: podinfo-alert-discord-webhook
+                key: url
 
 grafana:
   adminPassword: admin

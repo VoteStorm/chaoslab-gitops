@@ -1,0 +1,14 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: podinfo-pod-failure
+  namespace: chaos-mesh
+spec:
+  action: pod-failure
+  mode: one
+  duration: "2m"
+  selector:
+    namespaces:
+      - podinfo
+    labelSelectors:
+      app.kubernetes.io/name: podinfo

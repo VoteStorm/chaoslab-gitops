@@ -1,0 +1,18 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: podinfo-network-delay
+  namespace: chaos-mesh
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces:
+      - podinfo
+    labelSelectors:
+      app.kubernetes.io/name: podinfo
+  delay:
+    latency: "300ms"
+    correlation: "100"
+    jitter: "50ms"
+  duration: "2m"

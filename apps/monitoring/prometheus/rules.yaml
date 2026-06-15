@@ -1,0 +1,93 @@
+additionalPrometheusRulesMap:
+  podinfo-chaos-alerts:
+    groups:
+      - name: podinfo-chaos.rules
+        rules:
+          - alert: PodinfoTargetDown
+            expr: sum(up{namespace="podinfo", service=~".*podinfo.*"}) < 1
+            for: 1m
+            labels:
+              severity: critical
+              service: podinfo
+              namespace: podinfo
+            annotations:
+              summary: "podinfo metrics target is down"
+              description: "Prometheus cannot scrape podinfo metrics for more than 1 minute."
+
+          - alert: PodinfoNotEnoughReadyPods
+            expr: sum(kube_pod_status_ready{namespace="podinfo", condition="true", pod=~"podinfo.*"}) < 2
+            for: 1m
+            labels:
+              severity: warning
+              service: podinfo
+              namespace: podinfo
+            annotations:
+              summary: "podinfo ready pod count is below threshold"
+              description: "Ready pod count is below 2. Check PodChaos, readiness failure, scheduling, or application health."
+
+          - alert: PodinfoPodRestarted
+            expr: sum(increase(kube_pod_container_status_restarts_total{namespace="podinfo", pod=~"podinfo.*"}[5m])) > 0
+            for: 0m
+            labels:
+              severity: warning
+              service: podinfo
+              namespace: podinfo
+            annotations:
+              summary: "podinfo pod restarted"
+              description: "podinfo container restarted within the last 5 minutes."
+
+          - alert: PodinfoOOMKilled
+            expr: max_over_time(kube_pod_container_status_last_terminated_reason{namespace="podinfo", pod=~"podinfo.*", reason="OOMKilled"}[5m]) == 1
+            for: 0m
+            labels:
+              severity: critical
+              service: podinfo
+              namespace: podinfo
+            annotations:
+              summary: "podinfo container was OOMKilled"
+              description: "podinfo container was terminated due to OOMKilled. Check memory limit and memory stress experiment."
+
+          - alert: PodinfoHighErrorRate
+            expr: |
+              (
+                sum(rate(http_requests_total{namespace="podinfo", status=~"5.."}[2m]))
+                /
+                sum(rate(http_requests_total{namespace="podinfo"}[2m]))
+              ) > 0.05
+              and
+              sum(rate(http_requests_total{namespace="podinfo"}[2m])) > 0.1
+            for: 1m
+            labels:
+              severity: critical
+              service: podinfo
+              namespace: podinfo
+            annotations:
+              summary: "podinfo 5xx error rate is high"
+              description: "5xx error ratio is above 5% for more than 1 minute."
+
+          - alert: PodinfoHighLatency
+            expr: |
+              histogram_quantile(
+                0.95,
+                sum(rate(http_request_duration_seconds_bucket{namespace="podinfo"}[2m])) by (le)
+              ) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: podinfo
+              namespace: podinfo
+            annotations:
+              summary: "podinfo p95 latency is high"
+              description: "p95 latency is above 1 second for more than 2 minutes."
+
+          - alert: PodinfoHighCPUUsage
+            expr: |
+              sum(rate(container_cpu_usage_seconds_total{namespace="podinfo", pod=~"podinfo.*", container!="", image!=""}[2m])) by (pod) > 0.4
+            for: 3m
+            labels:
+              severity: warning
+              service: podinfo
+              namespace: podinfo
+            annotations:
+              summary: "podinfo CPU usage is high"
+              description: "podinfo CPU usage is above 400m for more than 3 minutes. Check CPU stress experiment or HPA behavior."

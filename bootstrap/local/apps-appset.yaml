@@ -1,7 +1,8 @@
+# bootstrap/local/apps-appset.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: monitoring
+  name: apps
   namespace: argocd
 spec:
   goTemplate: true
@@ -11,18 +12,13 @@ spec:
         repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
         revision: feature/on-prem/#10-podinfo-chaos-mesh
         files:
-          - path: apps/monitoring/*/app.yaml
+          - path: apps/podinfo/app.yaml
+          - path: apps/chaos-mesh/app.yaml
   template:
     metadata:
       name: "{{ .name }}"
     spec:
       project: default
-      ignoreDifferences:
-        - group: apps
-          kind: StatefulSet
-          jsonPointers:
-            - /spec/volumeClaimTemplates/0/apiVersion
-            - /spec/volumeClaimTemplates/0/kind
       sources:
         - repoURL: https://github.com/VoteStorm/chaoslab-gitops.git
           targetRevision: feature/on-prem/#10-podinfo-chaos-mesh
@@ -31,12 +27,9 @@ spec:
           chart: "{{ .chart }}"
           targetRevision: "{{ .targetRevision }}"
           helm:
-            ignoreMissingValueFiles: true
             valueFiles:
-              - $values/apps/monitoring/{{ .name }}/values.yaml         # 공통
-              - $values/apps/monitoring/{{ .name }}/dashboards.yaml
-              - $values/apps/monitoring/{{ .name }}/rules.yaml
-              - $values/apps/monitoring/{{ .name }}/local/values.yaml   # 환경별
+              - $values/apps/{{ .name }}/values.yaml
+              - $values/apps/{{ .name }}/local/values.yaml
       destination:
         server: https://kubernetes.default.svc
         namespace: "{{ .namespace }}"
