@@ -329,10 +329,10 @@ grafana:
               },
               {
                 "id": 201,
-                "title": "Latency Percentiles (p50 / p95 / p99)",
+                "title": "App Latency (p50 / p95 / p99)",
                 "description": "Network Delay 주입 시 p99부터 상승합니다. p50과 p99의 gap이 클수록 일부 요청에 집중된 지연임을 의미합니다.",
                 "type": "timeseries",
-                "gridPos": { "x": 0, "y": 16, "w": 8, "h": 7 },
+                "gridPos": { "x": 0, "y": 16, "w": 6, "h": 7 },
                 "datasource": { "type": "prometheus", "uid": "prometheus" },
                 "fieldConfig": {
                   "defaults": { "unit": "ms", "custom": { "lineWidth": 2, "fillOpacity": 5 } },
@@ -373,11 +373,65 @@ grafana:
                 ]
               },
               {
+                "id": 204,
+                "title": "Ingress Latency (p95 / p99)",
+                "description": "NGINX Ingress가 요청을 받아 upstream Pod 응답을 반환하기까지의 지연입니다. Network Delay 주입 시 ingress-to-upstream 구간의 latency 상승을 관찰합니다.",
+                "type": "timeseries",
+                "gridPos": { "x": 6, "y": 16, "w": 6, "h": 7 },
+                "datasource": { "type": "prometheus", "uid": "prometheus" },
+                "fieldConfig": {
+                  "defaults": {
+                    "unit": "ms",
+                    "custom": {
+                      "lineWidth": 2,
+                      "fillOpacity": 5,
+                      "thresholdsStyle": { "mode": "line" }
+                    },
+                    "thresholds": {
+                      "mode": "absolute",
+                      "steps": [
+                        { "color": "green", "value": null },
+                        { "color": "yellow", "value": 200 },
+                        { "color": "red", "value": 500 }
+                      ]
+                    }
+                  },
+                  "overrides": [
+                    {
+                      "matcher": { "id": "byName", "options": "p99" },
+                      "properties": [
+                        { "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } },
+                        { "id": "custom.lineWidth", "value": 2 }
+                      ]
+                    },
+                    {
+                      "matcher": { "id": "byName", "options": "p95" },
+                      "properties": [
+                        { "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } },
+                        { "id": "custom.lineWidth", "value": 2 }
+                      ]
+                    }
+                  ]
+                },
+                "targets": [
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "histogram_quantile(0.95, sum by (le) (rate(nginx_ingress_controller_request_duration_seconds_bucket{host=\"podinfo.chaos-lab.local\"}[$__rate_interval]))) * 1000",
+                    "legendFormat": "p95"
+                  },
+                  {
+                    "datasource": { "type": "prometheus", "uid": "prometheus" },
+                    "expr": "histogram_quantile(0.99, sum by (le) (rate(nginx_ingress_controller_request_duration_seconds_bucket{host=\"podinfo.chaos-lab.local\"}[$__rate_interval]))) * 1000",
+                    "legendFormat": "p99"
+                  }
+                ]
+              },
+              {
                 "id": 202,
                 "title": "Request Rate (Total / 2xx)",
                 "description": "전체 요청 수 대비 정상 응답 비율. Network Loss 주입 시 Total은 유지되지만 2xx가 감소합니다.",
                 "type": "timeseries",
-                "gridPos": { "x": 8, "y": 16, "w": 8, "h": 7 },
+                "gridPos": { "x": 12, "y": 16, "w": 6, "h": 7 },
                 "datasource": { "type": "prometheus", "uid": "prometheus" },
                 "fieldConfig": {
                   "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 10 } }
@@ -400,7 +454,7 @@ grafana:
                 "title": "Error Rate (5xx / 4xx)",
                 "description": "Network Loss 주입 시 5xx 에러율이 상승합니다. Pod Failure 복합 장애 시 더 높은 에러율이 관찰됩니다.",
                 "type": "timeseries",
-                "gridPos": { "x": 16, "y": 16, "w": 8, "h": 7 },
+                "gridPos": { "x": 18, "y": 16, "w": 6, "h": 7 },
                 "datasource": { "type": "prometheus", "uid": "prometheus" },
                 "fieldConfig": {
                   "defaults": {
