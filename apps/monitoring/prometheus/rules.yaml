@@ -114,3 +114,20 @@ additionalPrometheusRulesMap:
             annotations:
               summary: "podinfo CPU throttling is high"
               description: "podinfo CPU throttling ratio is above 20% for more than 2 minutes. Check CPU limits, resource requests, and HPA scaling behavior."
+
+          - alert: PodinfoIngressHighLatency
+            expr: |
+              histogram_quantile(
+                0.95,
+                sum by (le) (
+                  rate(nginx_ingress_controller_request_duration_seconds_bucket{host="podinfo.chaos-lab.local"}[2m])
+                )
+              ) > 0.2
+            for: 1m
+            labels:
+              severity: warning
+              service: podinfo
+              namespace: podinfo
+            annotations:
+              summary: "podinfo ingress latency is high"
+              description: "podinfo ingress p95 latency is above 200ms for more than 1 minute. Check Network Delay, ingress-to-upstream network path, or upstream response latency."
