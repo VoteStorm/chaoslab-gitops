@@ -2,6 +2,7 @@ prometheus:
   prometheusSpec:
     scrapeInterval: 15s
     retention: 7d
+    enableRemoteWriteReceiver: true
     serviceMonitorNamespaceSelector: {}
     serviceMonitorSelector: {}
     serviceMonitorSelectorNilUsesHelmValues: false

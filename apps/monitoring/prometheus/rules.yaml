@@ -15,18 +15,18 @@ additionalPrometheusRulesMap:
               description: "Prometheus cannot scrape podinfo metrics for more than 1 minute."
 
           - alert: PodinfoNotEnoughReadyPods
-            expr: sum(kube_pod_status_ready{namespace="podinfo", condition="true", pod=~"podinfo.*"}) < 2
-            for: 1m
+            expr: sum(kube_pod_status_ready{namespace="podinfo", condition="true", pod=~"podinfo-.*"}) < 3
+            for: 30s
             labels:
               severity: warning
               service: podinfo
               namespace: podinfo
             annotations:
               summary: "podinfo ready pod count is below threshold"
-              description: "Ready pod count is below 2. Check PodChaos, readiness failure, scheduling, or application health."
+              description: "Ready pod count is below 3. Check for Pod Failure, readiness failure, scheduling, or application health."
 
           - alert: PodinfoPodRestarted
-            expr: sum(increase(kube_pod_container_status_restarts_total{namespace="podinfo", pod=~"podinfo.*"}[5m])) > 0
+            expr: sum(increase(kube_pod_container_status_restarts_total{namespace="podinfo", pod=~"podinfo-.*"}[2m])) > 0
             for: 0m
             labels:
               severity: warning
@@ -34,7 +34,7 @@ additionalPrometheusRulesMap:
               namespace: podinfo
             annotations:
               summary: "podinfo pod restarted"
-              description: "podinfo container restarted within the last 5 minutes."
+              description: "podinfo container restarted within the last 2 minutes. Check for Pod Failure,liveness failure, recent deployments, or container logs."
 
           - alert: PodinfoOOMKilled
             expr: max_over_time(kube_pod_container_status_last_terminated_reason{namespace="podinfo", pod=~"podinfo.*", reason="OOMKilled"}[5m]) == 1
@@ -82,12 +82,52 @@ additionalPrometheusRulesMap:
 
           - alert: PodinfoHighCPUUsage
             expr: |
-              sum(rate(container_cpu_usage_seconds_total{namespace="podinfo", pod=~"podinfo.*", container!="", image!=""}[2m])) by (pod) > 0.4
-            for: 3m
+              sum by (pod) (rate(container_cpu_usage_seconds_total{namespace="podinfo", pod=~"podinfo-.*", container="podinfo"}[2m])) / sum by (pod) (kube_pod_container_resource_requests{namespace="podinfo", pod=~"podinfo-.*", container="podinfo", resource="cpu"}) > 0.8
+            for: 1m
             labels:
               severity: warning
               service: podinfo
               namespace: podinfo
             annotations:
               summary: "podinfo CPU usage is high"
-              description: "podinfo CPU usage is above 400m for more than 3 minutes. Check CPU stress experiment or HPA behavior."
+              description: "podinfo CPU usage is above 80% of the requested CPU for more than 1 minute. Check CPU Stress or HPA behavior, or application load."
+          
+          - alert: PodinfoHpaMaxReplicasReached
+            expr: kube_horizontalpodautoscaler_status_current_replicas{namespace="podinfo", horizontalpodautoscaler="podinfo"} >= on(namespace, horizontalpodautoscaler) kube_horizontalpodautoscaler_spec_max_replicas{namespace="podinfo", horizontalpodautoscaler="podinfo"}
+            for: 1m
+            labels:
+              severity: warning
+              service: podinfo
+              namespace: podinfo
+            annotations:
+              summary: "podinfo HPA max replicas reached"
+              description: "podinfo HPA reached the configured max replica count. Check whether additional capacity or HPA maxReplicas tuning is required."
+          
+          - alert: PodinfoCPUThrottlingHigh
+            expr: |
+              sum by (pod) (rate(container_cpu_cfs_throttled_periods_total{namespace="podinfo", pod=~"podinfo-.*", container="podinfo"}[2m])) / sum by (pod) (rate(container_cpu_cfs_periods_total{namespace="podinfo", pod=~"podinfo-.*", container="podinfo"}[2m])) > 0.2
+            for: 2m
+            labels:
+              severity: warning
+              service: podinfo
+              namespace: podinfo
+            annotations:
+              summary: "podinfo CPU throttling is high"
+              description: "podinfo CPU throttling ratio is above 20% for more than 2 minutes. Check CPU limits, resource requests, and HPA scaling behavior."
+
+          - alert: PodinfoIngressHighLatency
+            expr: |
+              histogram_quantile(
+                0.95,
+                sum by (le) (
+                  rate(nginx_ingress_controller_request_duration_seconds_bucket{host="podinfo.chaos-lab.local"}[2m])
+                )
+              ) > 0.2
+            for: 1m
+            labels:
+              severity: warning
+              service: podinfo
+              namespace: podinfo
+            annotations:
+              summary: "podinfo ingress latency is high"
+              description: "podinfo ingress p95 latency is above 200ms for more than 1 minute. Check Network Delay, ingress-to-upstream network path, or upstream response latency."
